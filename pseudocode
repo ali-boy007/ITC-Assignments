@@ -1,0 +1,18 @@
+function fp16_add(a, b):
+    # 1. EXTRACT — unpack sign, exponent, mantissa
+    sa, ea, ma = extract(a)      # subtract bias 15, add hidden 1
+    sb, eb, mb = extract(b)
+
+    # 2. ALIGN — shift smaller mantissa right (bias cancels in ea-eb)
+    if ea > eb: mb = shift_right(mb, ea - eb)
+    elif eb > ea: ma = shift_right(ma, eb - ea)
+    exp = max(ea, eb)
+
+    # 3. ADD — integer add of aligned mantissas
+    mant = ma + mb
+
+    # 4. NORMALIZE — fix overflow / leading zeros, adjust exp
+    mant, exp = normalize(mant, exp)
+
+    # 5. PACK — reattach bias 15, merge fields to 16-bit word
+    return pack(sa ^ sb, exp, mant)
